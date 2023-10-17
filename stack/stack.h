@@ -10,19 +10,30 @@ private:
 	Node<T>* next;
 
 public:
+	template <typename U>
+	friend std::ostream &operator<<(std::ostream &output, const Node<U> &obj);
+
 	Node(T val, Node *node) : val(val), next(node) {}
-	Node(T val): val(val), next(nullptr){}
+	Node(T val): val(val), next(nullptr) {}
 	Node(const Node &other): val(other.val), next(nullptr) {}
 
 	T get_val() const { return val; }
-
 	Node<T>* get_next() const { return next; }
-
-	void set_next(Node<T> *next)
-	{
-		this->next = next;
-	}
+	
+	void set_next(Node<T> *next) { this->next = next; }
+	void set_val(T val) { this.val = val; }
 };
+
+template <typename T>
+std::ostream &operator<<(std::ostream &output, const Node<T> &obj)
+{
+	output << "Value: " << obj.val;
+	if (obj.next)
+		output << " | Next: " << obj.next;
+	else
+		output << " | Next: nullptr";
+	return output;
+}
 
 template <typename T>
 class Stack
@@ -35,8 +46,8 @@ public:
 	Stack() : head(nullptr), size(0) {}
 
 	Stack(T val) {
-		head = new Node<T>(val, nullptr);
-		size = 0;
+		head = new Node<T>(val);
+		size = 1;
 	}
 
 	Stack(const Stack<T>& s){
@@ -96,20 +107,24 @@ public:
 		head->set_next(left);
 	}
 
-	std::string to_string(){
-		std::string s = "";
-		Stack temp;
-		
-		std::cout << "[";
-		while (size > 0){
-			T val = this->pop();
-			s += std::to_string(val) + " ";
-			temp.push(val);
+	std::string to_string() const
+	{
+		std::string s = "[ ";
+		Node<T> *tmp_head = head;
+
+		while (tmp_head)
+		{
+			s += std::to_string(tmp_head->get_val()) + " ";
+			tmp_head = tmp_head->get_next();
 		}
-		std::cout << "]";
-		
-		while (temp.size > 0)
-			this->push(temp.pop());
+		s += "]";
 		return s;
 	}
 };
+
+template <typename T>
+std::ostream &operator<<(std::ostream &output, const Stack<T> &obj)
+{
+	output << obj.to_string();
+	return output;
+}
