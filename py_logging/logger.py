@@ -79,7 +79,7 @@ class Logger:
         return f'Logger level: {self.__level}, to file: {self.__file if self.__file else 'standard output'}'
     
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}<{self.__level}, {self.__file if self.__file else None}>'
+        return f'{self.__class__.__name__}(level={self.__level}, file={self.__file if self.__file else None})'
 
     def __format_log(self, msg: str, color: bool = True) -> str:
         """
