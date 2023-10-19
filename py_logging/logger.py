@@ -1,5 +1,6 @@
 import time
 import os
+import sys
 import traceback
 import re
 from termcolor import colored
@@ -75,11 +76,14 @@ class Logger:
             try:
                 if level.show_time:
                     msg = self.__get_foramted_time()[0] + msg
+                msg = ' ' + msg
                 if msg[-1] != '\n':
                     msg += ' '
+                if not level.suffix and msg[-1] == '\n':
+                    msg = msg[:-1]
                 if color:
                     return colored(Logger.__remove_ws_chars(level.prefix) + msg + Logger.__remove_ws_chars(level.suffix), 
-                                   level.color, 'on_' + level.background_color)
+                                   level.color, level.background_color if not level.background_color else 'on_' + level.background_color)
                 return Logger.__remove_ws_chars(level.prefix) + msg + Logger.__remove_ws_chars(level.suffix)
             except KeyError:
                 raise ValueError(f'Color: {level.color}, or background color: {level.background_color} is undefined')
@@ -97,11 +101,23 @@ class Logger:
             self.__file_created = True
             fd.write(f'{text}\n')
 
-    @staticmethod
-    def __get_foramted_time() -> (str, int):
+    def __indent_msg(self, msg: str) -> str:
+        """
+        Indent a message according to the time string representation and the level's prefix
+        :return: the indented message
+        """
+        if '\n' not in msg:
+            return msg
+        level = Logger.__logging[self.__level]
+        buff = len(level.prefix) + 1
+        if level.show_time:
+            buff += self.__get_foramted_time()[1]
+        return '\n'.join([(msg := msg.replace('\t', '    ')).split('\n')[0]] + [' ' * buff + line for line in msg.split('\n')[1:]])    
+
+    def __get_foramted_time(self) -> (str, int):
         """
         Create a string representation of the current time
-        :return the time string representation and its length
+        :return: the time string representation and its length
         """
         time_str = f'[{datetime.now().strftime("%H:%M:%S")}] '
         return time_str, len(time_str) 
@@ -110,15 +126,15 @@ class Logger:
     def __remove_ws_chars(s: str) -> str:
         """
         Removes all white space characters from the string except ' '
-        :return the cleaned string
+        :return: the cleaned string
         """
-        return ' '.join([piece for piece in re.findall(r'[^\t\r\n\v]+', s) if piece])
+        return re.sub(r'[\t\n\r]', ' ', s)
     
     @staticmethod
     def __format_arg(arg) -> str:
         """
         Find the best string representation of a given object
-        :return the string representation
+        :return: the string representation
         """
         if isinstance(arg, str):
             return f'"{arg}"'
@@ -150,19 +166,6 @@ class Logger:
         else:
             self.__level = level
 
-    def __indent_msg(self, msg: str) -> str:
-        """
-        Indent a message according to the time string representation and the level's prefix
-        :return the indented message
-        """
-        if '\n' not in msg:
-            return msg
-        level = Logger.__logging[self.__level]
-        buff = len(level.prefix)
-        if level.show_time:
-            buff += self.__get_foramted_time()[1]
-        return '\n'.join([msg.split('\n')[0]] + [' ' * buff + line for line in msg.split('\n')[1:]])
-    
     def pref(self, *, file: str = ''):
         """
         Function preformance decorator
@@ -202,25 +205,30 @@ class Logger:
 
                 args = ' ,'.join([self.__format_arg(arg) for arg in args])
                 kwargs = ' ,'.join([f'{k}: {self.__format_arg(v)}' for k, v in kwargs.items()])
-                msg = f'FUNCTION: {func.__name__} => {value} | in {end - start:.5f} sec(s)'
+                msg = f'FUNCTION: {func.__name__} => {value}'
+                if Logger.__logging[self.__level].show_pref_time or detailed:
+                    msg += f' | in {end - start:.5f} sec(s)'
                 if not Logger.__logging[self.__level].simplified or detailed:
                     msg += f'\nINFO: args   = [{args}]\n      kwargs = {{{fr"{kwargs}"}}}'
                     msg = self.__indent_msg(msg)
                     msg += '\n'
                 try:
-                    self.log(msg, file)
+                    self.log(msg, file, indent=False)
                     return value
                 except:
                     traceback.print_exc()
             return wrapper
         return decorator
 
-    def log(self, msg: str, file: str = ''):
+    def log(self, msg: str, file: str = '', *, indent: bool = True):
         """
         Log a message to the given output (standard output / file)
         :param msg: message to log
         :param file: path to a file to log to
+        :param indent: indent the message
         """
+        if indent:
+            msg = self.__indent_msg(msg)
         if (file := file if file else self.__file):
             self.__write_to_file(file, self.__format_log(msg, color=False))
         else:

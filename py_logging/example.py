@@ -2,13 +2,13 @@ from logger import Level, Logger
 
 
 def main():
-    logger = Logger('DEBUG')
-    logger.set_level(Level('MSG', '>>> ', '<<<', 'red', 'yellow', show_pref_time=True, show_time=True, simplified=False))
+    logger = Logger('DEFAULT', new_file=False)
+    logger.set_level(Level('MSG', '>', '<', 'blue', 'yellow', show_pref_time=True, show_time=True, simplified=True))
 
     @logger.log_func(detailed=True)
     def sigma(x: float):
         val = sum(range(x))
-        logger.log(f'sum is: {val}')
+        logger.log(f'sum is:\n\t{val}')
         return val
     
     print(logger)
